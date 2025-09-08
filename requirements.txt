@@ -1,5 +1,5 @@
 streamlit
 PyMuPDF
-google-generativeai
+openai
 streamlit-agraph
 pyvis
