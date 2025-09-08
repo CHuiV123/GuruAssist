@@ -1,11 +1,14 @@
 import streamlit as st
-import fitz  # PyMuPDF
 import logging
-from typing import List, Optional, Dict, Any
+import openai  # OpenAI SDK
+import fitz  # PyMuPDF
 import json
-import openai  # ✅ OpenAI SDK
+import re
+from typing import List, Optional, Dict, Any
 from streamlit.runtime.uploaded_file_manager import UploadedFile
 from streamlit_agraph import agraph, Node, Edge, Config
+from io import BytesIO
+from docx import Document
 
 # --- App Configuration & Logging ---
 logging.basicConfig(
@@ -22,8 +25,6 @@ logging.info("Application configured and started.")
 
 
 # --- Functions ---
-# --- OpenAI GPT-4o-mini API Interaction ---
-
 def generate_structure_with_openai(api_key: str, syllabus_text: str) -> Optional[str]:
     """Sends syllabus text to OpenAI GPT-4o-mini and asks for JSON structured output."""
     try:
@@ -37,33 +38,11 @@ def generate_structure_with_openai(api_key: str, syllabus_text: str) -> Optional
         Provide your output ONLY as a single, valid JSON object. The JSON structure should be recursive, with a 'name' for the topic and a 'children' array for its sub-topics. The root element should represent the overall subject of the syllabus.
 
         Do not include any text, explanations, or markdown formatting like ```json outside of the JSON object itself.
-
-        Example of the required JSON format:
-        {{
-          "name": "Overall Subject",
-          "children": [
-            {{
-              "name": "Main Topic 1",
-              "children": [
-                {{"name": "Sub-topic 1.1"}},
-                {{"name": "Sub-topic 1.2"}}
-              ]
-            }},
-            {{
-              "name": "Main Topic 2"
-            }}
-          ]
-        }}
-
-        Syllabus Text to Analyze:
-        ---
-        {syllabus_text}
-        ---
         """
 
         response = openai.chat.completions.create(
             model="gpt-4o-mini",
-            messages=[{"role": "user", "content": prompt}],
+            messages=[{"role": "user", "content": prompt + syllabus_text}],
             temperature=0
         )
         return response.choices[0].message.content.strip()
@@ -81,19 +60,11 @@ def generate_topic_details_with_openai(api_key: str, topic_name: str) -> Optiona
         prompt = f"""
         You are a world-class educator, skilled at breaking down complex topics into simple, memorable concepts.
         Provide a clear and detailed explanation for the following topic, formatted in markdown.
-        Your explanation should include:
-        1.  **Summary**: A brief, one or two-sentence summary of the topic.
-        2.  **Key Points**: A bulleted list of the 3-5 most important concepts or facts.
-        3.  **Example/Analogy**: A simple, real-world example or an easy-to-understand analogy.
-
-        Do not include the topic name as a header in your response. The application will provide the title.
-
-        Topic to explain: "{topic_name}"
         """
 
         response = openai.chat.completions.create(
             model="gpt-4o-mini",
-            messages=[{"role": "user", "content": prompt}],
+            messages=[{"role": "user", "content": prompt + topic_name}],
             temperature=0.5
         )
         return response.choices[0].message.content.strip()
@@ -104,19 +75,42 @@ def generate_topic_details_with_openai(api_key: str, topic_name: str) -> Optiona
 
 
 # --- Graph Generation ---
-
-def build_agraph_nodes_edges(node_data: Dict[str, Any], parent_id: str, nodes: List[Node], edges: List[Edge], id_to_name_map: Dict[str, str]):
-    """Recursively builds lists of nodes and edges for streamlit-agraph."""
+def build_agraph_nodes_edges(
+    node_data: Dict[str, Any],
+    parent_id: str,
+    nodes: List[Node],
+    edges: List[Edge],
+    id_to_name_map: Dict[str, str],
+    level: int
+):
+    """Recursively builds nodes/edges for streamlit-agraph with styling per hierarchy level."""
     node_name = node_data['name']
     node_id = str(hash(parent_id + node_name))
 
     id_to_name_map[node_id] = node_name
-    nodes.append(Node(id=node_id, label=node_name, size=15))
+
+    # 🎨 Style nodes based on hierarchy level
+    if level == 1:   # First layer under root
+        size, color = 45, "#42A5F5"   # Blue
+    elif level == 2: # Second layer
+        size, color = 35, "#66BB6A"   # Green
+    elif level == 3: # Third layer
+        size, color = 30, "#FF7043"   # Orange
+    elif level == 4: # Fourth layer
+        size, color = 25, "#ed1717"   # Red
+    elif level == 5: #fifth layer 
+        size, color = 20, "#97f867"   # light green
+    elif level == 6: #sixth layer
+        size, color = 15, "#ffd966"   # light orange
+    else:            # Deeper levels
+        size, color = 10, "#AB47BC"   # Purple
+
+    nodes.append(Node(id=node_id, label=node_name, size=size, color=color))
     edges.append(Edge(source=parent_id, target=node_id, type="CURVE_SMOOTH"))
 
     if 'children' in node_data and node_data['children'] is not None:
         for child in node_data['children']:
-            build_agraph_nodes_edges(child, node_id, nodes, edges, id_to_name_map)
+            build_agraph_nodes_edges(child, node_id, nodes, edges, id_to_name_map, level + 1)
 
 
 def create_interactive_mindmap_data(structure: Dict[str, Any]) -> tuple[List[Node], List[Edge], Dict[str, str]]:
@@ -128,17 +122,18 @@ def create_interactive_mindmap_data(structure: Dict[str, Any]) -> tuple[List[Nod
     root_name = structure.get('name', 'Syllabus')
     root_id = str(hash(root_name))
     id_to_name_map[root_id] = root_name
-    nodes.append(Node(id=root_id, label=root_name, size=25, color="#F9A825"))
+
+    # 🎨 Root always larger & gold color
+    nodes.append(Node(id=root_id, label=root_name, size=50, color="#FFD700"))
 
     if 'children' in structure and structure['children'] is not None:
         for child in structure['children']:
-            build_agraph_nodes_edges(child, root_id, nodes, edges, id_to_name_map)
+            build_agraph_nodes_edges(child, root_id, nodes, edges, id_to_name_map, level=1)
 
     return nodes, edges, id_to_name_map
 
 
 # --- Helper Functions ---
-
 def extract_text_from_pdf(uploaded_file: UploadedFile) -> Optional[str]:
     """Extracts text from an uploaded PDF file."""
     try:
@@ -165,166 +160,109 @@ def process_and_generate_mindmap(api_key: str, text_input: str) -> bool:
     """Takes text input, calls OpenAI to get a structure, and updates session state with mindmap data."""
     with st.spinner("AI is analyzing your input and building the mind map... This may take a moment."):
         cleaned_syllabus = clean_text(text_input)
-        logging.info(f"Cleaned input text. Length: {len(cleaned_syllabus)} characters.")
-
-        logging.info("Calling OpenAI API to generate mind map structure.")
         json_response_text = generate_structure_with_openai(api_key, cleaned_syllabus)
         if not json_response_text:
-            logging.error("Received no response from structure generation API.")
             st.error("Failed to get a response from the AI for structure generation.")
             return False
 
         st.session_state.api_key = api_key
-        logging.info("API key validated and stored in session state.")
-
         try:
             if json_response_text.strip().startswith("```json"):
                 json_response_text = json_response_text.strip()[7:-3].strip()
-            logging.info("Parsing JSON response from AI.")
             mindmap_structure = json.loads(json_response_text)
-            logging.info("Successfully parsed mind map structure.")
         except json.JSONDecodeError:
-            logging.error("Failed to decode JSON from AI response.", exc_info=True)
             st.error("The AI returned an invalid format. Please try again.")
             st.code(json_response_text)
             return False
 
         if not mindmap_structure:
-            logging.warning("Mind map structure is empty after parsing.")
             st.warning("The AI could not generate a structure from the provided text.")
             return False
         else:
-            logging.info("Creating interactive mind map data (nodes and edges).")
             nodes, edges, id_to_name_map = create_interactive_mindmap_data(mindmap_structure)
-
             st.session_state.nodes = nodes
             st.session_state.edges = edges
             st.session_state.id_to_name_map = id_to_name_map
             st.session_state.selected_topic = None
             st.session_state.topic_details = None
-
             st.success("Mind map generated successfully!")
             return True
+
+def markdown_to_plain(text: str) -> str:
+    """Convert Markdown text to plain text safely."""
+    if not text:
+        return ""
+    # Remove headers (###, ##, #)
+    text = re.sub(r"^#+\s*", "", text, flags=re.MULTILINE)
+    # Remove bold/italic (**text**, *text*)
+    text = re.sub(r"\*\*(.*?)\*\*", r"\1", text)
+    text = re.sub(r"\*(.*?)\*", r"\1", text)
+    # Remove bullet symbols (-, *, +) but keep text
+    text = re.sub(r"^\s*[-*+]\s+", "", text, flags=re.MULTILINE)
+    return text.strip()
+
+
+def create_word_doc(text: str) -> BytesIO:
+    """Generate a Word document from plain text and return as BytesIO."""
+    plain_text = markdown_to_plain(text or "")
+    doc = Document()
+    doc.add_paragraph(plain_text)
+
+    buffer = BytesIO()
+    doc.save(buffer)
+    buffer.seek(0)
+    return buffer
 
 
 # --- Main App Interface ---
 st.title("🧠 AI-Powered Syllabus Mind Map Generator")
-st.write(
-    "Upload your course syllabus as a PDF. OpenAI GPT-4o-mini will analyze the content and generate a conceptual mind map to supercharge your study sessions!"
-)
 
-# --- Sidebar for API Key and File Upload ---
+# --- Sidebar ---
 st.sidebar.header("Configuration")
-api_key = st.sidebar.text_input("Enter your OpenAI API Key", type="password", help="Get your key from https://platform.openai.com/")
+api_key = st.sidebar.text_input("Enter your OpenAI API Key", type="password")
 uploaded_file = st.sidebar.file_uploader("Choose a syllabus PDF", type="pdf")
-st.sidebar.markdown("<p style='text-align: center;'>OR</p>", unsafe_allow_html=True)
-manual_text = st.sidebar.text_area(
-    "Paste your topic/syllabus text here",
-    height=200,
-    placeholder="e.g., Introduction to Python, Variables, Data Types, Loops..."
-)
-
-st.sidebar.markdown("---")
-if st.sidebar.button("Reset and Start Over"):
-    st.session_state.nodes = []
-    st.session_state.edges = []
-    st.session_state.id_to_name_map = {}
-    st.session_state.selected_topic = None
-    st.session_state.topic_details = None
-    st.session_state.path = []
-    logging.info("Session state has been reset by the user.")
-    st.rerun()
-
-
-# --- Session State Initialization ---
-if 'nodes' not in st.session_state:
-    st.session_state.nodes = []
-if 'edges' not in st.session_state:
-    st.session_state.edges = []
-if 'id_to_name_map' not in st.session_state:
-    st.session_state.id_to_name_map = {}
-if 'selected_topic' not in st.session_state:
-    st.session_state.selected_topic = None
-if 'topic_details' not in st.session_state:
-    st.session_state.topic_details = None
-if 'api_key' not in st.session_state:
-    st.session_state.api_key = None
-if 'path' not in st.session_state:
-    st.session_state.path = []
-
+manual_text = st.sidebar.text_area("Paste syllabus text", height=200)
 
 if st.sidebar.button("Generate Mind Map", type="primary"):
-    logging.info("'Generate Mind Map' button clicked.")
-    if not api_key:
-        st.warning("Please enter your OpenAI API Key in the sidebar.")
-        logging.warning("API key is missing.")
-    elif not uploaded_file and not manual_text:
-        st.warning("Please upload a PDF or paste text into the text box to generate a mind map.")
-        logging.warning("No input provided (neither PDF nor text).")
+    if uploaded_file:
+        raw_text = extract_text_from_pdf(uploaded_file)
     else:
-        raw_text = ""
-        if uploaded_file:
-            logging.info(f"Processing uploaded file: {uploaded_file.name}")
-            raw_text = extract_text_from_pdf(uploaded_file)
-        elif manual_text:
-            logging.info("Processing text from manual input.")
-            raw_text = manual_text
+        raw_text = manual_text
+    if raw_text:
+        process_and_generate_mindmap(api_key, raw_text)
 
-        if raw_text:
-            st.session_state.path = []
-            success = process_and_generate_mindmap(api_key, raw_text)
-            if success:
-                root_node_id = next((node.id for node in st.session_state.nodes if node.size == 25), None)
-                if root_node_id:
-                    root_name = st.session_state.id_to_name_map.get(root_node_id, "Syllabus")
-                    st.session_state.path.append(root_name)
-                st.rerun()
-
-
-# --- Display Mind Map and Details (if data exists in session state) ---
-if st.session_state.nodes:
-    if st.session_state.path:
-        st.markdown(f"**Path:** `{' > '.join(st.session_state.path)}`")
-
+# --- Display Mind Map ---
+if 'nodes' in st.session_state and st.session_state.nodes:
     st.subheader("Generated Interactive Mind Map")
-    st.info("Click on a node to get a detailed explanation of the topic.")
-
-    config = Config(
-        width=900,
-        height=600,
-        directed=True,
-        physics=True,
-        hierarchical=False,
-        nodeHighlightBehavior=True,
-        highlightColor="#F7A7A6",
-    )
-
+    config = Config(width=720, height=720, directed=True, physics=True, hierarchical=False, nodeHighlightBehavior=True)
     clicked_node_id = agraph(nodes=st.session_state.nodes, edges=st.session_state.edges, config=config)
 
     if clicked_node_id:
         topic_name = st.session_state.id_to_name_map.get(clicked_node_id)
-        logging.info(f"Node clicked. ID: {clicked_node_id}, Topic: {topic_name}")
-        if topic_name and topic_name != st.session_state.selected_topic:
-            if not st.session_state.api_key:
-                st.warning("Could not find a valid API key. Please generate the mind map again with a valid key.")
-            else:
-                st.session_state.selected_topic = topic_name
-                with st.spinner(f"🧠 Generating details for '{topic_name}'..."):
-                    logging.info(f"Fetching details for new topic: '{topic_name}'")
-                    details = generate_topic_details_with_openai(st.session_state.api_key, topic_name)
-                    st.session_state.topic_details = details
-                st.rerun()
+        if topic_name and topic_name != st.session_state.get("selected_topic"):
+            st.session_state.selected_topic = topic_name
+            details = generate_topic_details_with_openai(api_key, topic_name)
+            st.session_state.topic_details = details
+            st.rerun()
 
-    if st.session_state.selected_topic and st.session_state.topic_details:
+    if st.session_state.get("topic_details"):
         st.markdown("---")
         st.subheader(f"Learn about: {st.session_state.selected_topic}")
         st.markdown(st.session_state.topic_details)
-
+        
         if st.button(f"Drill Down: Create New Mind Map for '{st.session_state.selected_topic}'"):
             logging.info(f"Drill down requested for topic: {st.session_state.selected_topic}")
             topic_to_drill = st.session_state.selected_topic
             if process_and_generate_mindmap(st.session_state.api_key, topic_to_drill):
                 st.session_state.path.append(topic_to_drill)
                 st.rerun()
+                
+        # Download as Word
+        word_file = create_word_doc(st.session_state.topic_details)
+        st.download_button(
+            label="📥 Download Explanation as Word (Plain Text)",
+            data=word_file,
+            file_name=f"{st.session_state.selected_topic}.docx",
+            mime="application/vnd.openxmlformats-officedocument.wordprocessingml.document")
 else:
     st.info("Enter your API key, then upload a PDF or paste text in the sidebar to get started.")
