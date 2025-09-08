@@ -1,13 +1,13 @@
 # 🧠 GuruAssist: AI-Powered Mind Map Generator
 
-GuruAssist is a smart learning tool that transforms your syllabus or study notes into interactive, explorable mind maps. Built with Streamlit and powered by Google's Gemini AI, it helps you visualize complex topics, understand relationships between concepts, and dive deep into subjects on demand.
+GuruAssist is a smart learning tool that transforms your syllabus or study notes into interactive, explorable mind maps. Built with Streamlit and powered by OpenAI GPT4o-mini model, it helps you visualize complex topics, understand relationships between concepts, and dive deep into subjects on demand.
 
 *Replace this with a GIF or screenshot of your application in action!*
 
 ## ✨ Features
 
 - **Dual Input Methods**: Generate mind maps from either a **PDF file** or by **pasting raw text**.
-- **AI-Powered Generation**: Leverages the Gemini API to intelligently analyze your content and build a hierarchical mind map.
+- **AI-Powered Generation**: Leverages the OpenAI API to intelligently analyze your content and build a hierarchical mind map.
 - **Interactive Visualization**: Explore your mind map with a dynamic, zoomable, and draggable interface.
 - **Click-to-Learn**: Click on any topic (node) in the mind map to get an instant, AI-generated summary, key points, and examples.
 - **Recursive Drill-Down**: Not enough detail? Select any topic and generate a brand new, more focused mind map for it.
@@ -16,7 +16,7 @@ GuruAssist is a smart learning tool that transforms your syllabus or study notes
 ## 🛠️ Tech Stack
 
 - **Framework**: [Streamlit](https://streamlit.io/)
-- **AI Engine**: [Google Gemini API](https://ai.google.dev/)
+- **AI Engine**: [OpenAI API](https://platform.openai.com/)
 - **PDF Extraction**: [PyMuPDF](https://pymupdf.readthedocs.io/en/latest/)
 - **Graph Visualization**: [streamlit-agraph](https://github.com/ChrisChs/streamlit-agraph)
 - **Language**: Python
@@ -28,7 +28,7 @@ Follow these steps to set up and run GuruAssist on your local machine.
 ### Prerequisites
 
 - Python 3.8+
-- A Google AI API Key. You can get one from [Google AI Studio](https://aistudio.google.com/app/apikey).
+- A Google AI API Key. You can get a paid api key from [OpenAI API Platform](https://platform.openai.com/).
 
 ### Installation
 
@@ -64,11 +64,11 @@ Follow these steps to set up and run GuruAssist on your local machine.
 
 2.  **Open your browser** to `http://localhost:8501`.
 
-3.  **Enter your Google AI API Key** in the sidebar, upload a PDF or paste text, and click "Generate Mind Map"!
+3.  **Enter your OpenAI API Key** in the sidebar, upload a PDF or paste text, and click "Generate Mind Map"!
 
 ## Usage
 
-1.  Provide your Google AI API Key in the sidebar.
+1.  Provide your OpenAI API Key in the sidebar.
 2.  Upload a syllabus PDF or paste your study notes into the text area.
 3.  Click **"Generate Mind Map"**.
 4.  Interact with the generated mind map:
