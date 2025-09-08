@@ -3,7 +3,7 @@ import fitz  # PyMuPDF
 import logging
 from typing import List, Optional
 import json
-import google.generativeai as genai
+from openai import OpenAI 
 from typing import List, Optional, Dict, Any
 from streamlit.runtime.uploaded_file_manager import UploadedFile
 from streamlit_agraph import agraph, Node, Edge, Config
@@ -22,15 +22,15 @@ st.set_page_config(
 logging.info("Application configured and started.")
 
 # --- Functions ---
-# --- Gemini API Interaction ---
+# --- OpenAI API Interaction ---
 
-def generate_structure_with_gemini(api_key: str, syllabus_text: str) -> Optional[str]:
+def generate_structure_with_openai(api_key: str, syllabus_text: str) -> Optional[str]:
     """
-    Sends syllabus text to the Gemini API and asks for a structured JSON output.
+    Sends syllabus text to the OpenAI API and asks for a structured JSON output.
     """
     try:
-        genai.configure(api_key=api_key)
-        model = genai.GenerativeModel('gemini-1.5-flash')
+        global client
+        client = openAI(api_key=api_key)
         
         prompt = f"""
         You are an expert educator and learning assistant. Your task is to analyze the following syllabus text and structure it into a hierarchical mind map, designed for easy memorization.
@@ -64,20 +64,24 @@ def generate_structure_with_gemini(api_key: str, syllabus_text: str) -> Optional
         ---
         """
         
-        response = model.generate_content(prompt)
-        return response.text
+        response = client.chat.completions.create(
+            model="gpt-4o-mini",
+            messages=[{"role": "user", "content": prompt}],
+            temperature=0
+        )
+        return response.choices[0].message.content.strip()
     except Exception as e:
-        logging.error(f"Gemini API error (structure generation): {e}", exc_info=True)
+        logging.error(f"OpenAI API error (structure generation): {e}", exc_info=True)
         st.error(f"An error occurred during structure generation: {e}")
         return None
 
-def generate_topic_details_with_gemini(api_key: str, topic_name: str) -> Optional[str]:
+def generate_topic_details_with_openai(api_key: str, topic_name: str) -> Optional[str]:
     """
-    Sends a topic name to Gemini and asks for a detailed explanation.
+    Sends a topic name to openai and asks for a detailed explanation.
     """
     try:
-        genai.configure(api_key=api_key)
-        model = genai.GenerativeModel('gemini-1.5-flash')
+        global client
+        client = OpenAI(api_key=api_key)
         
         prompt = f"""
         You are a world-class educator, skilled at breaking down complex topics into simple, memorable concepts.
@@ -92,10 +96,14 @@ def generate_topic_details_with_gemini(api_key: str, topic_name: str) -> Optiona
         Topic to explain: "{topic_name}"
         """
         
-        response = model.generate_content(prompt)
-        return response.text
+        response = client.chat.completions.create(
+            model="gpt-4o-mini",
+            messages=[{"role": "user", "content": prompt}],
+            temperature=0.5
+        )
+        return response.choices[0].message.content.strip()
     except Exception as e:
-        logging.error(f"Gemini API error (topic details for '{topic_name}'): {e}", exc_info=True)
+        logging.error(f"OpenAI API error (topic details for '{topic_name}'): {e}", exc_info=True)
         st.error(f"An error occurred while generating details for '{topic_name}': {e}")
         return None
 
@@ -159,7 +167,7 @@ def clean_text(text: str) -> str:
 
 def process_and_generate_mindmap(api_key: str, text_input: str) -> bool:
     """
-    Takes text input, calls Gemini to get a structure, and updates session state with mindmap data.
+    Takes text input, calls openai to get a structure, and updates session state with mindmap data.
     Returns True on success, False on failure.
     """
     with st.spinner("AI is analyzing your input and building the mind map... This may take a moment."):
@@ -167,9 +175,9 @@ def process_and_generate_mindmap(api_key: str, text_input: str) -> bool:
         cleaned_syllabus = clean_text(text_input)
         logging.info(f"Cleaned input text. Length: {len(cleaned_syllabus)} characters.")
 
-        # 2. Call Gemini API to get structured data
-        logging.info("Calling Gemini API to generate mind map structure.")
-        json_response_text = generate_structure_with_gemini(api_key, cleaned_syllabus)
+        # 2. Call openai API to get structured data
+        logging.info("Calling OpenAI API to generate mind map structure.")
+        json_response_text = generate_structure_with_openai(api_key, cleaned_syllabus)
         if not json_response_text:
             logging.error("Received no response from structure generation API.")
             st.error("Failed to get a response from the AI for structure generation.")
@@ -214,7 +222,7 @@ def process_and_generate_mindmap(api_key: str, text_input: str) -> bool:
 # --- Main App Interface ---
 st.title("🧠 AI-Powered Syllabus Mind Map Generator")
 st.write(
-    "Upload your course syllabus as a PDF. Gemini will analyze the content and generate a conceptual mind map to supercharge your study sessions!"
+    "Upload your course syllabus as a PDF. OpenAI will analyze the content and generate a conceptual mind map to supercharge your study sessions!"
 )
 
 # --- Sidebar for API Key and File Upload ---
@@ -321,7 +329,7 @@ if st.session_state.nodes:
                 st.session_state.selected_topic = topic_name
                 with st.spinner(f"🧠 Generating details for '{topic_name}'..."):
                     logging.info(f"Fetching details for new topic: '{topic_name}'")
-                    details = generate_topic_details_with_gemini(st.session_state.api_key, topic_name)
+                    details = generate_topic_details_with_openai(st.session_state.api_key, topic_name)
                     st.session_state.topic_details = details
                 st.rerun() # Rerun to display the new details immediately
 
