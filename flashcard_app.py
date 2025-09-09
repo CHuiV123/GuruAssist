@@ -31,9 +31,12 @@ def generate_structure_with_openai(api_key: str, syllabus_text: str) -> Optional
         openai.api_key = api_key
 
         prompt = f"""
-        You are an expert educator and learning assistant. Your task is to analyze the following syllabus text and structure it into a hierarchical mind map, designed for easy memorization.
+        You are an expert educator and learning assistant. 
+        Your task is to analyze the following syllabus text and structure it into a hierarchical mind map. 
 
-        Focus on identifying the core concepts, main topics, and sub-topics, and organize them logically.
+        - All topic names in the JSON must be written in **{language}**.
+        - Focus on identifying the core concepts, main topics, and sub-topics.
+        - Organize them logically.
 
         Provide your output ONLY as a single, valid JSON object. The JSON structure should be recursive, with a 'name' for the topic and a 'children' array for its sub-topics. The root element should represent the overall subject of the syllabus.
 
@@ -59,7 +62,7 @@ def generate_topic_details_with_openai(api_key: str, topic_name: str) -> Optiona
 
         prompt = f"""
         You are a world-class educator, skilled at breaking down complex topics into simple, memorable concepts.
-        Provide a clear and detailed explanation for the following topic, formatted in markdown.
+        Provide a clear and detailed explanation for the following topic. Write the explanation in **{language}**, formatted in markdown.
         """
 
         response = openai.chat.completions.create(
@@ -222,6 +225,11 @@ st.sidebar.header("Configuration")
 api_key = st.sidebar.text_input("Enter your OpenAI API Key", type="password")
 uploaded_file = st.sidebar.file_uploader("Choose a syllabus PDF", type="pdf")
 manual_text = st.sidebar.text_area("Paste syllabus text", height=200)
+language = st.sidebar.selectbox(
+    "Select Output Language",
+    ["English", "Bahasa Malaysia", "Chinese"],
+    index=0
+)
 
 if st.sidebar.button("Generate Mind Map", type="primary"):
     if uploaded_file:
