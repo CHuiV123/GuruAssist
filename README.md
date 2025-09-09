@@ -3,9 +3,9 @@
 ## Forked and modified by: Hui Voon 
 ## Additional features: 
 
-                     1. adding in **Language Selection** for user to select the mindmap generation language
-                     2. adding in **Download Function** for user to download the generated text 
-                     3. changing Google Gemini model to OpenAI GPT-4o-mini 
+                     - adding in **Language Selection** for user to select the mindmap generation language
+                     - adding in **Download Function** for user to download the generated text 
+                     - changing Google Gemini model to OpenAI GPT-4o-mini 
 
 
 
