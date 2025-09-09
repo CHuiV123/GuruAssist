@@ -23,6 +23,10 @@ st.set_page_config(
 )
 logging.info("Application configured and started.")
 
+if "path" not in st.session_state:
+    st.session_state.path = []
+
+
 
 # --- Functions ---
 def generate_structure_with_openai(api_key: str, syllabus_text: str) -> Optional[str]:
@@ -104,7 +108,7 @@ def build_agraph_nodes_edges(
     elif level == 5: #fifth layer 
         size, color = 20, "#97f867"   # light green
     elif level == 6: #sixth layer
-        size, color = 15, "#ffd966"   # light orange
+        size, color = 15, "#fbb162"   # light orange
     else:            # Deeper levels
         size, color = 10, "#AB47BC"   # Purple
 
@@ -268,7 +272,7 @@ if 'nodes' in st.session_state and st.session_state.nodes:
         # Download as Word
         word_file = create_word_doc(st.session_state.topic_details)
         st.download_button(
-            label="📥 Download Explanation as Word (Plain Text)",
+            label="📥 Download Explanation as Word",
             data=word_file,
             file_name=f"{st.session_state.selected_topic}.docx",
             mime="application/vnd.openxmlformats-officedocument.wordprocessingml.document")
