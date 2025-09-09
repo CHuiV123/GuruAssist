@@ -1,3 +1,13 @@
+Originally from: https://github.com/ranjithmadheswaran/GuruAssist
+
+Forked and modified by: Hui Voon 
+Additional features: 
+                     1. adding in **Language Selection** for user to select the mindmap generation language
+                     2. adding in **Download Function** for user to download the generated text 
+                     3. changing Google Gemini model to OpenAI GPT-4o-mini 
+
+
+
 # 🧠 GuruAssist: AI-Powered Mind Map Generator
 
 GuruAssist is a smart learning tool that transforms your syllabus or study notes into interactive, explorable mind maps. Built with Streamlit and powered by OpenAI GPT4o-mini model, it helps you visualize complex topics, understand relationships between concepts, and dive deep into subjects on demand.
