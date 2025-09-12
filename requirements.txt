@@ -4,3 +4,4 @@ openai
 streamlit-agraph
 pyvis
 python-docx
+google-generativeai
