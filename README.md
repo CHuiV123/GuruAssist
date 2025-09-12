@@ -5,6 +5,7 @@
 1. adding in **Language Selection** for user to select the mindmap generation language
 2. adding in **Download Function** for user to download the generated text 
 3. adding in **Model Provider** option for user to select between OpenAI or Google Gemini
+4. changing fundamental function to be study assist app
 
 
 
