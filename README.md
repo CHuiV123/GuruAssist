@@ -2,10 +2,13 @@
 
 ## Forked and modified by: Hui Voon 
 ## Additional features: 
-1. adding in **Language Selection** for user to select the mindmap generation language
-2. adding in **Download Function** for user to download the generated text 
-3. adding in **Model Provider** option for user to select between OpenAI or Google Gemini
+1. added in **Language Selection** for user to select the mindmap generation language
+2. added in **Download Function** for user to download the generated text 
+3. added in **Model Provider** option for user to select between OpenAI or Google Gemini
 4. changing fundamental function to be study assist app
+5. added in color hieracy for the mind map node
+   <img width="230" height="307" alt="image" src="https://github.com/user-attachments/assets/0eeb4acb-bb31-40ae-b5fd-3ca4e005c774" />
+
 
 
 
