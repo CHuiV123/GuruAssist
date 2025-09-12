@@ -7,7 +7,8 @@
 3. added in **Model Provider** option for user to select between OpenAI or Google Gemini
 4. changing fundamental function to be study assist app
 5. added in color hieracy for the mind map node
-   <img width="230" height="307" alt="image" src="https://github.com/user-attachments/assets/0eeb4acb-bb31-40ae-b5fd-3ca4e005c774" />
+   
+   <img width="230" height="300" alt="image" src="https://github.com/user-attachments/assets/0eeb4acb-bb31-40ae-b5fd-3ca4e005c774" />
 
 
 
