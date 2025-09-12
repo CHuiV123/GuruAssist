@@ -9,7 +9,7 @@
 
 
 
-# 🧠 GuruAssist: AI-Powered Mind Map Generator
+# 🧠 StudyAssist: AI-Powered Mind Map Generator
 
 GuruAssist is a smart learning tool that transforms your syllabus or study notes into interactive, explorable mind maps. Built with Streamlit and powered by OpenAI GPT4o-mini model, it helps you visualize complex topics, understand relationships between concepts, and dive deep into subjects on demand.
 
