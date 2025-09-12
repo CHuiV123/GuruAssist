@@ -4,7 +4,7 @@
 ## Additional features: 
 1. adding in **Language Selection** for user to select the mindmap generation language
 2. adding in **Download Function** for user to download the generated text 
-3. changing Google Gemini model to OpenAI GPT-4o-mini 
+3. adding in **Model Provider** option for user to select between OpenAI or Google Gemini
 
 
 
